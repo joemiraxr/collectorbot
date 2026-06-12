@@ -1,0 +1,9 @@
+modules:
+  '@zerobias-org/module-sdi-petstore-example':
+    id: 9ea7b257-4aff-44cd-9133-2f44865278cd
+    name: module-sdi-petstore-example
+    module: Petstore
+products:
+  sdi.petstore.example:
+    id: 109af02d-f090-4818-8104-2254b1f24a1a
+    name: SDI Petstore Example

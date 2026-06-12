@@ -1,0 +1,63 @@
+{
+  "name": "@zerobias-org/collectorbot-sdi-petstore-example",
+  "version": "2.0.0",
+  "description": "SDI Petstore Example Collector",
+  "license": "UNLICENSED",
+  "author": "dsimonca@zerobias.com",
+  "type": "module",
+  "main": "dist/src/index.js",
+  "files": [
+    "dist",
+    "npm-shrinkwrap.json",
+    "*.yml",
+    "*.md"
+  ],
+  "scripts": {
+    "clean": "rm -rf dist/ generated/",
+    "generate": "npm run generate:models && npm run generate:hub-client && npm run postgenerate",
+    "generate:hub-client": "node -e \"import('@zerobias-com/hub-client-codegen')\"",
+    "generate:models": "hub-generator generate -g hub-module -i ./parameters.yml -o generated/ --global-property models,supportingFiles=index.ts && rm -f ./generated/api/index.ts",
+    "postgenerate": "node -e \"const fs=require('fs');const f='generated/inversify.config.ts';if(!fs.existsSync(f)){process.exit(0);}let s=fs.readFileSync(f,'utf8');const orig=\\\"import { IllegalArgumentError, HubConnectionProfile as RemoteHubConnectionProfile } from '@zerobias-org/types-core-js';\\\";const patched=\\\"import { IllegalArgumentError } from '@zerobias-org/types-core-js';\\\\nimport { HubConnectionProfile as RemoteHubConnectionProfile } from '@auditmation/hub-core';\\\";if(s.includes(orig)){s=s.replace(orig,patched);fs.writeFileSync(f,s);console.log('postgenerate: patched HubConnectionProfile import in '+f);}else if(s.includes(\\\"from '@auditmation/hub-core'\\\")){console.log('postgenerate: patch already applied');}else{console.error('postgenerate: WARNING - could not find canonical import line in '+f);process.exit(0);}\""
+  },
+  "repository": {
+    "type": "git",
+    "url": "git@github.com:zerobias-org/collectorbot.git",
+    "directory": "package/sdi/petstore/example"
+  },
+  "dependencies": {
+    "@auditmation/hub-core": "4.7.5",
+    "@supercharge/promise-pool": "3.3.0",
+    "@zerobias-com/hub-client": "2.0.7",
+    "@zerobias-com/platform-sdk": "1.1.17",
+    "@zerobias-org/module-sdi-petstore-example": "1.0.0-rc.1",
+    "@zerobias-org/product-sdi-petstore-example": "1.0.0-rc.1",
+    "@zerobias-org/schema-sdi-petstore-example": "1.0.0-rc.1",
+    "@zerobias-org/schema-sdi-petstore-example-ts": "1.0.0-rc.1",
+    "@zerobias-org/types-core-js": "2.0.3",
+    "@zerobias-org/util-collector": "1.0.42",
+    "inversify": "6.0.2",
+    "reflect-metadata": "0.2.2"
+  },
+  "overrides": {
+    "@zerobias-org/types-core-js": "$@zerobias-org/types-core-js",
+    "@zerobias-org/logger": "3.0.9"
+  },
+  "devDependencies": {
+    "@types/chai": "5.2.3",
+    "@types/mocha": "10.0.10",
+    "@types/node": "22.0.0",
+    "@zerobias-com/hub-client-codegen": "2.0.6",
+    "@zerobias-com/hub-secrets-manager": "1.0.71",
+    "@zerobias-org/eslint-config": "latest",
+    "@zerobias-org/util-codegen": "3.0.9",
+    "chai": "4.3.8",
+    "mocha": "11.7.5",
+    "tsx": "4.21.0",
+    "typescript": "5.9.3"
+  },
+  "zerobias": {
+    "package": "sdi.petstore.example.collectorbot",
+    "dataloader-version": "1.0.0",
+    "import-artifact": "collectorbot"
+  }
+}

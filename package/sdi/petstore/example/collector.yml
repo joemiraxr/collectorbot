@@ -1,0 +1,9 @@
+classes:
+    # Name of schema artifact that contains the classes below
+    - "@zerobias-org/schema-sdi-petstore-example":
+        # List of all classes from the artifact above this collector populates
+        - SdiPetstorePet
+        - SdiPetstoreCategory
+        - SdiPetstoreTag
+        - SdiPetstoreOrder
+        - SdiPetstoreUser
