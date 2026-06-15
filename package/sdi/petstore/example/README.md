@@ -43,17 +43,29 @@ RUN_LIVE=1 npx mocha --exit --reporter=list 'test/e2e/**/*.ts'
 ./gradlew :sdi:petstore:example:gate    # from the repo root
 ```
 
-## Known era-mixing accommodations
+## Build status & the upstream module blocker
 
-The paired module (`@zerobias-org/module-sdi-petstore-example@1.0.0-rc.1`) is
-built on the pre-Gradle (`@auditmation/*`) stack. Until the module is rebuilt
-on the current stack, this package carries two accommodations:
+Locally green: `tsc --noEmit`, `eslint src/`, and the live e2e test all pass,
+and the `/review-collector` validator suite passes.
+
+The Gradle `gate` does **not** pass yet, and the cause is upstream, not in
+this package. The paired module
+(`@zerobias-org/module-sdi-petstore-example@1.0.0-rc.1`) is the old pre-Gradle
+(`@auditmation/*`) build. It transitively pins `axios@^0.27.2` (via
+`@auditmation/types-core-js`), whereas the v2 toolchain — and the Gradle
+plugin's own generated `run.ts` / `inversify.config.ts` — assume `axios@1.x`
+and the v2 `@zerobias-org/types-core-js` shapes. The Gradle plugin owns
+codegen, so the npm-script accommodations below do not survive its regenerate
+step:
 
 1. `postgenerate` patches `generated/inversify.config.ts` to import
-   `HubConnectionProfile` from `@auditmation/hub-core` (what the module's
-   `connect()` expects) instead of `@zerobias-org/types-core-js`.
-2. `@zerobias-com/platform-sdk` is pinned to `1.1.17` to match
-   `@zerobias-org/util-collector`'s exact pin and avoid a dual-install type
-   clash.
+   `HubConnectionProfile` from `@auditmation/hub-core` — only effective for a
+   bare `npm run build`, not the Gradle build (which regenerates the file).
+2. `@zerobias-com/platform-sdk` pinned to `1.1.17` and `@auditmation/hub-core`
+   pinned to `4.7.5` to match the installed transitive set.
 
-Both can be removed once the module ships on the current toolchain.
+**To make the gate pass, rebuild `module-sdi-petstore-example` on the v2
+(Gradle + zbb) toolchain first** — that removes `axios@0.27` and the
+`HubConnectionProfile`/`URL` type clashes at the source. Once the v2 module is
+published, drop the two accommodations above and the `@auditmation/hub-core`
+dependency, then re-run the gate.
