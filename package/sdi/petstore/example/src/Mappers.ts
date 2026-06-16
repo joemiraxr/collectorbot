@@ -9,13 +9,15 @@ import * as m from '@zerobias-org/module-sdi-petstore-example';
 // class/SdiPetstorePet.d.ts and SdiPetstoreOrder.d.ts).
 //
 // Therefore: helpers return ALL_CAPS string literals directly. Module DTOs use
-// EnumValue singletons (m.Pet.StatusEnum.Available, etc.); switch on those.
+// EnumValue singletons (m.PetStatus.Available, m.Order.StatusEnum.Placed, etc.);
+// switch on those. (Pet status is the shared named enum m.PetStatus in v2; Order
+// status remains the per-model m.Order.StatusEnum.)
 
-function toPetStatus(raw?: m.Pet.StatusEnumDef): string | undefined {
+function toPetStatus(raw?: m.PetStatusDef): string | undefined {
   switch (raw) {
-    case m.Pet.StatusEnum.Available: return 'AVAILABLE';
-    case m.Pet.StatusEnum.Pending:   return 'PENDING';
-    case m.Pet.StatusEnum.Sold:      return 'SOLD';
+    case m.PetStatus.Available: return 'AVAILABLE';
+    case m.PetStatus.Pending:   return 'PENDING';
+    case m.PetStatus.Sold:      return 'SOLD';
     default: return undefined;
   }
 }

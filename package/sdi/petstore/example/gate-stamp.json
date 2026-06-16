@@ -1,0 +1,21 @@
+{
+  "version": "2.0.0-uat.0",
+  "branch": "feat/add-sdi-petstore-example",
+  "sourceHash": "debe3281e843054cf401bb38ea66db70938c0aa3d984952cdd8d472b2f46595f",
+  "testHash": "3f0b6c4e6c6209422e7f2bd1060ebdd3f14895684d3f6edcc79733ad6e5ed4a8",
+  "tasks": {
+    "validate": "passed",
+    "lint": "passed",
+    "compile": "passed",
+    "test": "passed",
+    "testDirect": "passed",
+    "testDocker": "passed",
+    "testDataloader": "passed",
+    "buildArtifacts": "passed"
+  },
+  "tests": {
+      "unit": { "expected": 0, "ran": 0, "status": "skipped" },
+      "integration": { "expected": 0, "ran": 0, "status": "skipped" },
+      "e2e": { "expected": 2, "ran": 2, "status": "passed" }
+  }
+}

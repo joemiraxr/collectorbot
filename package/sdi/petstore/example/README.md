@@ -43,29 +43,16 @@ RUN_LIVE=1 npx mocha --exit --reporter=list 'test/e2e/**/*.ts'
 ./gradlew :sdi:petstore:example:gate    # from the repo root
 ```
 
-## Build status & the upstream module blocker
+## Dependencies
 
-Locally green: `tsc --noEmit`, `eslint src/`, and the live e2e test all pass,
-and the `/review-collector` validator suite passes.
+This collector consumes the v2 (Gradle + zbb) chain at `2.0.0-uat.0`:
+`module`, `product`, and `schema` for `sdi-petstore-example`. The schema TS
+companion (`schema-sdi-petstore-example-ts`) is pinned at `1.0.0-rc.1` — its
+classes are byte-identical to the v2 schema, and no v2 `-ts` companion is
+published (v2 `@zerobias-org` schemas don't ship a separate `-ts` package).
 
-The Gradle `gate` does **not** pass yet, and the cause is upstream, not in
-this package. The paired module
-(`@zerobias-org/module-sdi-petstore-example@1.0.0-rc.1`) is the old pre-Gradle
-(`@auditmation/*`) build. It transitively pins `axios@^0.27.2` (via
-`@auditmation/types-core-js`), whereas the v2 toolchain — and the Gradle
-plugin's own generated `run.ts` / `inversify.config.ts` — assume `axios@1.x`
-and the v2 `@zerobias-org/types-core-js` shapes. The Gradle plugin owns
-codegen, so the npm-script accommodations below do not survive its regenerate
-step:
-
-1. `postgenerate` patches `generated/inversify.config.ts` to import
-   `HubConnectionProfile` from `@auditmation/hub-core` — only effective for a
-   bare `npm run build`, not the Gradle build (which regenerates the file).
-2. `@zerobias-com/platform-sdk` pinned to `1.1.17` and `@auditmation/hub-core`
-   pinned to `4.7.5` to match the installed transitive set.
-
-**To make the gate pass, rebuild `module-sdi-petstore-example` on the v2
-(Gradle + zbb) toolchain first** — that removes `axios@0.27` and the
-`HubConnectionProfile`/`URL` type clashes at the source. Once the v2 module is
-published, drop the two accommodations above and the `@auditmation/hub-core`
-dependency, then re-run the gate.
+The earlier era-mixing accommodations (a `postgenerate` patch importing
+`HubConnectionProfile` from `@auditmation/hub-core`, and an `@auditmation/hub-core`
+dependency) were removed once the v2 module landed: the v2 module is built on
+the `@zerobias-org/*` stack with `axios@1.x`, so the Gradle plugin's generated
+`run.ts` / `inversify.config.ts` compile cleanly with no patching.

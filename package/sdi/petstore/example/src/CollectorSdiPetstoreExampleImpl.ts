@@ -9,7 +9,7 @@ import { UnexpectedError, UUID } from '@zerobias-org/types-core-js';
 import { Batch } from '@zerobias-org/util-collector';
 import { injectable } from 'inversify';
 import { PromisePool } from '@supercharge/promise-pool';
-import { PetApi } from '@zerobias-org/module-sdi-petstore-example';
+import { PetStatus } from '@zerobias-org/module-sdi-petstore-example';
 import { BaseClient } from '../generated/BaseClient.js';
 import { mapPet, mapCategory, mapTag, mapOrder, mapPetstoreUser } from './Mappers.js';
 
@@ -82,7 +82,7 @@ export class CollectorSdiPetstoreExampleImpl extends BaseClient {
     const tagBatch = await this.initBatchForClass(this.classes.tag, CollectorSdiPetstoreExampleImpl.GROUP_ID);
 
     // pet.list returns Promise<Array<Pet>> (plain array, no pagination)
-    const pets = await this.example.getPetApi().list(PetApi.StatusEnum.Available);
+    const pets = await this.example.getPetApi().list(PetStatus.Available);
     const window = pets.slice(0, this.previewCount ?? pets.length);
 
     await PromisePool.for(window)
