@@ -171,7 +171,13 @@ jobs:
 
   publish:
     needs: [detect, version]
-    if: needs.detect.outputs.modules != '[]'
+    # version only runs on main; on other branches it is skipped. Guard with
+    # always() so a skipped version job does not also skip publish (matches
+    # the module repo's reusable publish workflow).
+    if: |
+      always() &&
+      needs.detect.outputs.modules != '[]' &&
+      (needs.version.result == 'success' || needs.version.result == 'skipped')
     runs-on: ubuntu-latest
     env:
       # Phase 3: ephemeral slot for this CI publish run.
