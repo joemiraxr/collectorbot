@@ -6,7 +6,15 @@ import { Batch } from '@zerobias-org/util-collector';
 import { injectable } from 'inversify';
 import { Parameters } from '../generated/model/index.js';
 import { BaseClient } from '../generated/BaseClient.js';
-import { toAsset, toCloudService } from './Mappers.js';
+import {
+  CONTAINER_TYPE_MANAGEMENT_GROUP,
+  CONTAINER_TYPE_RESOURCE_GROUP,
+  CONTAINER_TYPE_SUBSCRIPTION,
+  toManagementGroup,
+  toResource,
+  toResourceGroup,
+  toSubscription,
+} from './Mappers.js';
 
 @injectable()
 export class CollectorMicrosoftAzureAzureresourcegraphImpl extends BaseClient {
@@ -100,7 +108,7 @@ export class CollectorMicrosoftAzureAzureresourcegraphImpl extends BaseClient {
    * runs (no parameters) use the bare tenant ID; scoped runs append the
    * sorted scope so differently-scoped pipelines never delete each
    * other's data. Resource vs container sets are already isolated by
-   * class (Asset vs CloudService).
+   * class (concrete product-schema classes per row kind).
    */
   private buildGroupId(parameters?: Parameters): string {
     const parts: string[] = [this.tenantId];
@@ -119,7 +127,11 @@ export class CollectorMicrosoftAzureAzureresourcegraphImpl extends BaseClient {
     managementGroupIds?: Array<string>
   ): Promise<void> {
     this.logger.info('Loading resource containers (subscriptions / resource groups / management groups)');
-    const batch = await this.initBatchForClass('CloudService', groupId);
+    // One ARG pass, routed into a batch per concrete class — the
+    // ResourceContainers table mixes all three row kinds.
+    const subscriptions = await this.initBatchForClass('AzureResourceGraphSubscription', groupId);
+    const resourceGroups = await this.initBatchForClass('AzureResourceGraphResourceGroup', groupId);
+    const managementGroups = await this.initBatchForClass('AzureResourceGraphManagementGroup', groupId);
     // ARG caps $top at 1000 — request the maximum page size; paging is
     // cursor-based ($skipToken) and handled by PagedResults.
     const containers = await this.azureresourcegraph
@@ -127,12 +139,26 @@ export class CollectorMicrosoftAzureAzureresourcegraphImpl extends BaseClient {
       .list(1000, undefined, subscriptionIds, managementGroupIds);
     await containers.forEach(async (container) => {
       try {
-        await batch.add(toCloudService(container));
+        switch (container.type?.toLowerCase()) {
+          case CONTAINER_TYPE_SUBSCRIPTION:
+            await subscriptions.add(toSubscription(container));
+            break;
+          case CONTAINER_TYPE_RESOURCE_GROUP:
+            await resourceGroups.add(toResourceGroup(container));
+            break;
+          case CONTAINER_TYPE_MANAGEMENT_GROUP:
+            await managementGroups.add(toManagementGroup(container));
+            break;
+          default:
+            this.logger.warn(`Unrecognized resource container type '${container.type}' for ${container.id} - skipping`);
+        }
       } catch (err) {
-        await batch.error(`Failed to process resource container ${container.id}`, err);
+        await subscriptions.error(`Failed to process resource container ${container.id}`, err);
       }
     }, undefined, this.previewCount);
-    await batch.end();
+    await subscriptions.end();
+    await resourceGroups.end();
+    await managementGroups.end();
     this.logger.info('Loading resource containers - done');
   }
 
@@ -142,13 +168,13 @@ export class CollectorMicrosoftAzureAzureresourcegraphImpl extends BaseClient {
     managementGroupIds?: Array<string>
   ): Promise<void> {
     this.logger.info('Loading resources');
-    const batch = await this.initBatchForClass('Asset', groupId);
+    const batch = await this.initBatchForClass('AzureResourceGraphResource', groupId);
     const resources = await this.azureresourcegraph
       .getResourceApi()
       .list(1000, undefined, subscriptionIds, managementGroupIds);
     await resources.forEach(async (resource) => {
       try {
-        await batch.add(toAsset(resource));
+        await batch.add(toResource(resource));
       } catch (err) {
         await batch.error(`Failed to process resource ${resource.id}`, err);
       }

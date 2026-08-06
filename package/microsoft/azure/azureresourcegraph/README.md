@@ -10,22 +10,22 @@ api-version `2024-04-01`, cursor paging via `$skipToken`).
 
 ## Data Collected
 
-Interface-targeted collection against
-`@zerobias-org/schema-zerobias-zerobias-base` — no vendor schema package
-exists yet; the dataloader materializes `Dynamic<Interface>` concrete
-classes at ingest from the discriminator carried on each object:
+Concrete-class collection against
+`@zerobias-org/schema-microsoft-azure-azureresourcegraph`
+(review decision 2026-08-06 — concrete product-schema classes, not base
+interfaces):
 
-- **Asset** — one per row of the ARG `Resources` table (VMs, storage
-  accounts, key vaults, ...). Discriminator `assetType` carries the ARG
-  `type` column verbatim (e.g. `microsoft.compute/virtualmachines`).
-- **CloudService** — one per row of the ARG `ResourceContainers` table
-  (subscriptions, resource groups, management groups). Consistent with the
-  platform's existing `AzureSubscription extends CloudService` typing.
-  Discriminator `assetType` carries the ARG `type` column
-  (e.g. `microsoft.resources/subscriptions`).
-
-Concrete schema classes are deferred until the data shape stabilizes
-(`schema/package/microsoft/azure/azureresourcegraph/`).
+- **AzureResourceGraphResource** (extends `InventoryItem`, with local links
+  to the suite classes — the dataloader resolves `extends` against
+  interfaces only) — one per row of the ARG `Resources` table (VMs, storage
+  accounts, key vaults, ...). The inherited `assetType` carries the ARG
+  `type` column verbatim (e.g. `microsoft.compute/virtualmachines`);
+  `subscription` / `resourceGroup` / `resourceProvider` / `resourceType`
+  links are populated from the row.
+- **AzureResourceGraphSubscription** (extends `AzureSubscription`),
+  **AzureResourceGraphResourceGroup** (extends `AzureResourceGroup`) and
+  **AzureResourceGraphManagementGroup** — one per row of the ARG
+  `ResourceContainers` table, routed by the row's `type` column.
 
 ## Required Permissions
 
@@ -54,7 +54,7 @@ readable row (ARG has no metadata endpoint):
   `${tenantId}-mg:<ids>`, so differently-scoped pipelines never delete
   each other's data.
 
-Asset vs CloudService sets are additionally isolated by class.
+Row-kind data sets are additionally isolated by concrete class.
 
 ## Development
 

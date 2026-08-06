@@ -1,9 +1,20 @@
-import type { Asset, CloudService, Tag } from '@zerobias-org/schema-zerobias-zerobias-base-ts/dist/src/index.js';
+import type {
+  AzureResourceGraphManagementGroup,
+  AzureResourceGraphResource,
+  AzureResourceGraphResourceGroup,
+  AzureResourceGraphSubscription,
+  Tag,
+} from '@zerobias-org/schema-microsoft-azure-azureresourcegraph-ts/dist/index.js';
 import { CloudProvider } from '@zerobias-org/types-core-js';
 import type { Resource, ResourceContainer } from '@zerobias-org/module-microsoft-azure-azureresourcegraph';
 
+/** ARG `type` values for the three ResourceContainers row kinds. */
+export const CONTAINER_TYPE_SUBSCRIPTION = 'microsoft.resources/subscriptions';
+export const CONTAINER_TYPE_RESOURCE_GROUP = 'microsoft.resources/subscriptions/resourcegroups';
+export const CONTAINER_TYPE_MANAGEMENT_GROUP = 'microsoft.management/managementgroups';
+
 /**
- * Convert the ARG `tags` column ({ key: value }) to the base schema Tag document shape.
+ * Convert the ARG `tags` column ({ key: value }) to the schema Tag document shape.
  */
 function toTags(tags?: { [key: string]: string }): Tag[] | undefined {
   if (!tags) {
@@ -17,51 +28,88 @@ function toTags(tags?: { [key: string]: string }): Tag[] | undefined {
 }
 
 /**
- * Map an Azure Resource Graph `Resources` row to the base `Asset` interface.
+ * Map an Azure Resource Graph `Resources` row to the concrete
+ * `AzureResourceGraphResource` class (extends `AzureInventoryItem`).
  *
- * Interface-targeted collection: the dataloader materializes a
- * Dynamic<Asset> concrete class at ingest, discriminated by `assetType`,
- * which carries the ARG `type` column verbatim
- * (e.g. `microsoft.compute/virtualmachines`).
+ * Link values are the ARM IDs of the container objects collected in the
+ * same run, so the dataloader can resolve them:
+ * - `subscription`   -> `/subscriptions/<subscriptionId>` (= the subscription container row's `id`)
+ * - `resourceGroup`  -> the resource-ID prefix up to `/providers/` (= the resource-group container row's `id`)
+ * - `resourceProvider` / `resourceType` -> derived from the ARG `type` column;
+ *   both targets are `shared: true` suite classes.
  */
-export function toAsset(raw: Resource): Asset {
-  const output: Asset = {
+export function toResource(raw: Resource): AzureResourceGraphResource {
+  const providersIdx = raw.id.toLowerCase().indexOf('/providers/');
+  const resourceGroupId = providersIdx > 0 && raw.resourceGroup
+    ? raw.id.substring(0, providersIdx)
+    : undefined;
+  const output: AzureResourceGraphResource = {
     // Full ARM resource ID — globally unique and stable.
     id: raw.id,
     name: raw.name || raw.id,
-    // Everything ARG returns is an Azure (virtual) resource.
-    virtual: true,
-    tag: toTags(raw.tags),
-  };
-  // assetType is a closed enum on the generated TS interface, but the
-  // schema property is the Dynamic<Asset> discriminator — carry the ARG
-  // `type` value through via Object.assign (same pattern as the date
-  // workaround used by other collectors).
-  Object.assign(output, {
+    // Concrete-class targeting: assetType is the inherited InventoryItem
+    // property (field asset.type) and carries the ARG `type` verbatim —
+    // the old closed-enum Object.assign workaround is gone with Asset.
     assetType: raw.type,
-  });
+    region: raw.location,
+    kind: raw.kind,
+    managedBy: raw.managedBy,
+    tag: toTags(raw.tags),
+    subscription: raw.subscriptionId ? `/subscriptions/${raw.subscriptionId}` : undefined,
+    resourceGroup: resourceGroupId,
+    resourceProvider: raw.type.split('/')[0],
+    resourceType: raw.type,
+  };
   return output;
 }
 
 /**
- * Map an Azure Resource Graph `ResourceContainers` row (subscription,
- * resource group, or management group) to the base `CloudService`
- * interface — consistent with how the platform already types Azure
- * subscriptions (AzureSubscription extends CloudService).
+ * Map a `ResourceContainers` subscription row to `AzureResourceGraphSubscription`
+ * (extends `AzureSubscription` extends `CloudService`).
  */
-export function toCloudService(raw: ResourceContainer): CloudService {
-  const output: CloudService = {
+export function toSubscription(raw: ResourceContainer): AzureResourceGraphSubscription {
+  const output: AzureResourceGraphSubscription = {
     id: raw.id,
     name: raw.name || raw.id,
     provider: CloudProvider.Azure,
-    virtual: true,
     tag: toTags(raw.tags),
   };
-  // Discriminator: ARG `type` (e.g. `microsoft.resources/subscriptions`,
-  // `microsoft.resources/subscriptions/resourcegroups`,
-  // `microsoft.management/managementgroups`).
-  Object.assign(output, {
-    assetType: raw.type,
-  });
+  // Subscription state arrives in the untyped ARG `properties` bag as e.g.
+  // "Enabled"; the schema enum wants ALL_CAPS. Assigned loosely because the
+  // bag is untyped end-to-end.
+  const state = (raw.properties as { state?: string } | undefined)?.state;
+  if (state) {
+    Object.assign(output, { state: state.toUpperCase() });
+  }
+  return output;
+}
+
+/**
+ * Map a `ResourceContainers` resource-group row to `AzureResourceGraphResourceGroup`
+ * (extends `AzureResourceGroup`).
+ */
+export function toResourceGroup(raw: ResourceContainer): AzureResourceGraphResourceGroup {
+  const output: AzureResourceGraphResourceGroup = {
+    id: raw.id,
+    name: raw.name || raw.id,
+    region: raw.location,
+    subscription: raw.subscriptionId ? `/subscriptions/${raw.subscriptionId}` : undefined,
+    tag: toTags(raw.tags),
+  };
+  return output;
+}
+
+/**
+ * Map a `ResourceContainers` management-group row to
+ * `AzureResourceGraphManagementGroup` (bare class — no suite parent exists
+ * for management groups yet; links to tenant/subscriptions are a suite-level
+ * decision, see the schema package README).
+ */
+export function toManagementGroup(raw: ResourceContainer): AzureResourceGraphManagementGroup {
+  const output: AzureResourceGraphManagementGroup = {
+    id: raw.id,
+    name: raw.name || raw.id,
+    tag: toTags(raw.tags),
+  };
   return output;
 }
