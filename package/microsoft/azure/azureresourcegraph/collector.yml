@@ -1,0 +1,12 @@
+classes:
+    # Interface-targeted collection (no vendor schema package yet):
+    # rows are emitted against base interfaces and the dataloader
+    # materializes Dynamic<Interface> concrete classes at ingest via
+    # the discriminator carried on each object (assetType <- ARG `type`).
+    - "@zerobias-org/schema-zerobias-zerobias-base":
+        # Azure Resource Graph `Resources` table rows (listResources)
+        - Asset
+        # Azure Resource Graph `ResourceContainers` table rows
+        # (listResourceContainers: subscriptions / resource groups /
+        # management groups)
+        - CloudService
