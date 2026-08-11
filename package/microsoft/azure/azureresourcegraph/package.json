@@ -22,7 +22,7 @@
   "dependencies": {
     "@zerobias-com/hub-client": "1.0.80",
     "@zerobias-com/platform-sdk": "1.1.17",
-    "@zerobias-org/module-microsoft-azure-azureresourcegraph": "0.0.0",
+    "@zerobias-org/module-microsoft-azure-azureresourcegraph": "0.0.1-dev.0",
     "@zerobias-org/product-microsoft-azure-azureresourcegraph": "2.0.2",
     "@zerobias-org/schema-microsoft-azure-azureresourcegraph": "1.0.0-rc.1",
     "@zerobias-org/schema-microsoft-azure-azureresourcegraph-ts": "1.0.0-rc.1",
