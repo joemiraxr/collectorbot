@@ -108,7 +108,7 @@ export class CollectorMicrosoftAzureAzureresourcegraphImpl extends BaseClient {
    * runs (no parameters) use the bare tenant ID; scoped runs append the
    * sorted scope so differently-scoped pipelines never delete each
    * other's data. Resource vs container sets are already isolated by
-   * class (concrete product-schema classes per row kind).
+   * class (one suite class per row kind).
    */
   private buildGroupId(parameters?: Parameters): string {
     const parts: string[] = [this.tenantId];
@@ -127,11 +127,11 @@ export class CollectorMicrosoftAzureAzureresourcegraphImpl extends BaseClient {
     managementGroupIds?: Array<string>
   ): Promise<void> {
     this.logger.info('Loading resource containers (subscriptions / resource groups / management groups)');
-    // One ARG pass, routed into a batch per concrete class — the
+    // One ARG pass, routed into a batch per suite class — the
     // ResourceContainers table mixes all three row kinds.
-    const subscriptions = await this.initBatchForClass('AzureResourceGraphSubscription', groupId);
-    const resourceGroups = await this.initBatchForClass('AzureResourceGraphResourceGroup', groupId);
-    const managementGroups = await this.initBatchForClass('AzureResourceGraphManagementGroup', groupId);
+    const subscriptions = await this.initBatchForClass('AzureSubscription', groupId);
+    const resourceGroups = await this.initBatchForClass('AzureResourceGroup', groupId);
+    const managementGroups = await this.initBatchForClass('AzureManagementGroup', groupId);
     // ARG caps $top at 1000 — request the maximum page size; paging is
     // cursor-based ($skipToken) and handled by PagedResults.
     const containers = await this.azureresourcegraph
@@ -168,7 +168,7 @@ export class CollectorMicrosoftAzureAzureresourcegraphImpl extends BaseClient {
     managementGroupIds?: Array<string>
   ): Promise<void> {
     this.logger.info('Loading resources');
-    const batch = await this.initBatchForClass('AzureResourceGraphResource', groupId);
+    const batch = await this.initBatchForClass('AzureInventoryItem', groupId);
     const resources = await this.azureresourcegraph
       .getResourceApi()
       .list(1000, undefined, subscriptionIds, managementGroupIds);

@@ -1,10 +1,10 @@
 classes:
     # Name of schema artifact that contains the classes below
-    - "@zerobias-org/schema-microsoft-azure-azureresourcegraph":
+    - "@zerobias-org/schema-microsoft-azure":
         # Azure Resource Graph `Resources` table rows (listResources)
-        - AzureResourceGraphResource
+        - AzureInventoryItem
         # Azure Resource Graph `ResourceContainers` table rows
-        # (listResourceContainers), one concrete class per row kind
-        - AzureResourceGraphSubscription
-        - AzureResourceGraphResourceGroup
-        - AzureResourceGraphManagementGroup
+        # (listResourceContainers), one suite class per row kind
+        - AzureSubscription
+        - AzureResourceGroup
+        - AzureManagementGroup

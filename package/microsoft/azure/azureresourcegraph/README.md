@@ -10,22 +10,20 @@ api-version `2024-04-01`, cursor paging via `$skipToken`).
 
 ## Data Collected
 
-Concrete-class collection against
-`@zerobias-org/schema-microsoft-azure-azureresourcegraph`
-(review decision 2026-08-06 — concrete product-schema classes, not base
-interfaces):
+Suite-class collection against `@zerobias-org/schema-microsoft-azure`
+(team decision 2026-08-12 — ARG is a query surface over ARM inventory with
+no domain objects of its own, so the collector writes the Azure suite
+classes directly):
 
-- **AzureResourceGraphResource** (extends `InventoryItem`, with local links
-  to the suite classes — the dataloader resolves `extends` against
-  interfaces only) — one per row of the ARG `Resources` table (VMs, storage
-  accounts, key vaults, ...). The inherited `assetType` carries the ARG
-  `type` column verbatim (e.g. `microsoft.compute/virtualmachines`);
+- **AzureInventoryItem** — one per row of the ARG `Resources` table (VMs,
+  storage accounts, key vaults, ...). The inherited `assetType` carries the
+  ARG `type` column verbatim (e.g. `microsoft.compute/virtualmachines`);
   `subscription` / `resourceGroup` / `resourceProvider` / `resourceType`
   links are populated from the row.
-- **AzureResourceGraphSubscription** (extends `AzureSubscription`),
-  **AzureResourceGraphResourceGroup** (extends `AzureResourceGroup`) and
-  **AzureResourceGraphManagementGroup** — one per row of the ARG
-  `ResourceContainers` table, routed by the row's `type` column.
+- **AzureSubscription**, **AzureResourceGroup** and
+  **AzureManagementGroup** — one per row of the ARG `ResourceContainers`
+  table, routed by the row's `type` column. Management-group rows populate
+  the hierarchy `parent` link from `properties.details.parent.id`.
 
 ## Required Permissions
 
@@ -54,7 +52,7 @@ readable row (ARG has no metadata endpoint):
   `${tenantId}-mg:<ids>`, so differently-scoped pipelines never delete
   each other's data.
 
-Row-kind data sets are additionally isolated by concrete class.
+Row-kind data sets are additionally isolated by class.
 
 ## Development
 
